@@ -20,7 +20,7 @@ Creates an investment portfolio of ten S&amp;P500 stocks that is considered risk
 * Since standard deviation and beta are both measures of riskiness and we wanted to take both into consideration. We did so by narrowing down the stocks to those that are risky in terms of standard deviation and then the one that is riskiest in terms of beta
 * There are some limitations with this approach which we will touch on later that has to do with as unlucky set of data.
 
-### 3. Discussion for our decision in choosing the stocks to include
+### 3. Strategy for choosing the other 9 stocks
 * After determining the riskest stock among all the qualified stocks in the given csv file, we now want to decide what other stocks we should include in our portfolio in order to achieve a high-risk level. We will use the characteristics of this riskest stock as our guide to choosing the remaining stocks. The key idea of our approach is to **minimize the effect of diversification**.
 * The following steps explain in detail our code and why we do this. 
 >1. Firstly, we filter out 20 stocks that are most correlated to the riskest stock determined before. The purpose is to make sure the stocks in our final portfolio are highly correlated, and thus less diversified. As the riskest stock is expected to fluctuate a lot, we expect the rest of the stocks in the portfolio to change in a similar way, so that the total fluctuation is larger. 
