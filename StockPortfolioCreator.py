@@ -336,7 +336,7 @@ FinalPortfolio = weightings(final10)
 
 #Creates a dataframe for the .csv file and creates the csv
 Stocks = FinalPortfolio[['Ticker', 'Shares']]
-# Stocks.to_csv('Portfolio.csv')
+Stocks.to_csv('Portfolio.csv')
 
 print('\n\n\n' + FinalPortfolio)
 
