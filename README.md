@@ -50,7 +50,11 @@ Another limitation comes from the narrowing down of stocks using different value
 
 
 ## Credit
+
 Dylan Faelker - Threading capability, filtering where the stocks are traded, obtaining beta for each stock, efficiency increasing and reducing yfinance calls, getting the 20 most correlated stocks, getting the 9 riskiest stocks
+
 Brashan Mohanakumar - README part 1, efficiency increasing and reducing yfinance calls
+
 Abirami Karthikeyan - riskiest function, filtering for the volume of each stock, README part 2,5
+
 Jingling Ye - weightings function, obtaining standard deviation for each stock, README part 3,4
