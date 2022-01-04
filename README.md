@@ -1,5 +1,7 @@
+This was part of a group project for CFM 101. Some parts have been changed slightly so they are different from the projects requirements. Credit is given at the bottom of this document.
+
 # StockPortfolioCreater
-Creates an investment portfolio of ten S&amp;P500 stocks that is considered risky.
+Creates an investment portfolio of ten S&P500 stocks that is considered risky.
 
 ### 1. Strategy for filtering the stocks within the csv file:
  * Given a dataframe of tickers, this function first creates a new empty dataframe including the name of the ticker, the price of it, beta, standard deviation, the market cap and its returns
@@ -45,3 +47,10 @@ The coefficient of determination displays the percentage of a fund or security's
 When it comes to limitations to our project, the steps that we take to come up with the riskiest stocks may not produce the best results. For example, when we consider 20 stocks that are highly correlated with the riskiest stock, we would not consider stocks that are risky (according to the beta value and standard deviation) but not correlated with the riskiest stock. One way we can fix the issue is by dynamically setting a minimum value for the correlation coefficient and then gather the stocks that fit the requirement. In the case that there are less than 9 stocks, we would decrease the minimum value of the correlation coefficient until we reach the required number of stocks.
 
 Another limitation comes from the narrowing down of stocks using different values. There can be unlucky set of data where you do not even come close to ending up with a risky set of stocks. Take for example a set where stock A has a STD (standard devaition) of 20 and a beta of 1, stock B has a STD of 8 and a beta of 1.01, and stock C has a STD of 7 and a beta of 1.1. If these were the 3 stocks with the highest STD when trying to find the riskiest, clearly the top riskiest is stock A. But since we choose our riskiest stock off of beta from the top 3 STDs, our algorithm would produce stock C as the riskiest. If we were to fix this issue, we could create a points system that assigns certain amounts of points for each measure of risk. In the above scenario, stock A would get alot of points for it's STD and the other stocks wouldn't be able to get enough from beta to catch up. Perfecting the points values could take awhile but it would eliminate the possibility of the above situation.
+
+
+## Credit
+Dylan Faelker - Threading capability, filtering where the stocks are traded, obtaining beta for each stock, efficiency increasing and reducing yfinance calls, getting the 20 most correlated stocks, getting the 9 riskiest stocks
+Brashan Mohanakumar - README part 1, efficiency increasing and reducing yfinance calls
+Abirami Karthikeyan - riskiest function, filtering for the volume of each stock, README part 2,5
+Jingling Ye - weightings function, obtaining standard deviation for each stock, README part 3,4
