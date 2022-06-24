@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
-import numpy_financial as npf
 import yfinance as yf
-import matplotlib.pyplot as plt
 from datetime import datetime
 from datetime import timedelta
 import concurrent.futures as cf
@@ -10,7 +8,6 @@ import concurrent.futures as cf
 #Takes in a dataframe of tickers and filters out ones that are duplicates, not traded in the US 
 #  or have an average volume less than 10000 for Jul 2 to Oct 22 2021. It produces a dataframe
 #  with all valid tickers and finance data to go with them.
-
 def filtering(Tickers):
     
     #Creates a new dataframe to store valid tickers and their financial data
@@ -24,6 +21,8 @@ def filtering(Tickers):
     for index in range(len(Tickers.index)):
         if Tickers.iloc[index,0] in Tickers.iloc[index+1:]:
             Tickers.drop([index])
+            
+    number = 0
     
     #Threading
     with cf.ThreadPoolExecutor() as executor:
@@ -34,7 +33,9 @@ def filtering(Tickers):
         #Adds each ticker's data to the dataframe
         for row in cf.as_completed(datarow):
             Valid_Tickers = Valid_Tickers.append(row.result())
-
+            number+=1
+            print(number)
+    
     #Formats the data
     Valid_Tickers.reset_index(inplace=True)
     Valid_Tickers = Valid_Tickers[['Tickers', 'Price', 'Beta', 'STD', 'Returns']]
@@ -45,15 +46,14 @@ def filtering(Tickers):
 #Takes in a Ticker, filters it to ensure it is traded in the US and as enough volume.
 #  It then grabs the finacial data and returns a dataframe with a single row 
 #  containing the ticker and the financial data
-
 def filtering_thread(Ticker):
     
     #Gets data for filtering
     stock = yf.Ticker(Ticker)
     stock_hist = stock.history(start=data_start, end=data_end, interval='1d')
     
-    #gets the data for 2021-07-02 to 2021-10-22 to check volume
-    volume_hist = stock_hist.iloc[2894:2973]
+    #gets the data for the last 3 months to check volume
+    volume_hist = stock_hist.iloc[-66:-1]
     
     #grabs stock info
     info = stock.info
@@ -103,7 +103,6 @@ def filtering_thread(Ticker):
 
 #Takes in a set of tickers and determines which ticker is the 
 #  rickiest based on standard deviation and beta
-
 def riskiest (Tickers):
     
     # gets the 3 tickers with the highest standard deviation
@@ -120,7 +119,6 @@ def riskiest (Tickers):
 #  similar to Tickers but with only one row.
 #  It produces a dataframe of 10 stocks and their data which will be the stock in Corr 
 #  and 9 other most correlated and risky stocks.
-
 def other_9(Tickers, Corr):
     
     #creates a dataframe to store values
@@ -174,12 +172,10 @@ def other_9(Tickers, Corr):
     #returns top 10 stocks
     return(final)
             
-#Takes in a list of 10 tickers and produces weightings for a portfolio to maximise risk level
-
-def weightings(Tickers): 
-    
+ #Takes in a list of 10 tickers and produces weightings for a portfolio to maximise risk level
+def weightings(Tickers, availibleCash): 
     #Creates list of tickers in the order of risk level 
-    Tickers10 = final10['Tickers'].iloc[0:10].tolist()
+    Tickers10 = Tickers['Tickers'].iloc[0:10].tolist()
 
     #Creates the initial weight distribution, which is not set in stone
     weights = [0.35, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
@@ -291,7 +287,7 @@ def weightings(Tickers):
     FinalPortfolio['weights'] = weights
     
     #Calculates number of shares of bought of each stock
-    FinalPortfolio['Shares'] = (FinalPortfolio.weights * 100000) / FinalPortfolio.Price
+    FinalPortfolio['Shares'] = (FinalPortfolio.weights * availibleCash) / FinalPortfolio.Price
     
     #Creates column for the value of each stock within the portfolio
     FinalPortfolio['Value'] = FinalPortfolio.Price * FinalPortfolio.Shares
@@ -302,18 +298,174 @@ def weightings(Tickers):
     #Formatting
     FinalPortfolio = FinalPortfolio[['Tickers', 'Price', 'Shares', 'Value', 'Weight']]
     FinalPortfolio.columns = ['Ticker', 'Price', 'Shares', 'Value', 'Weight']
-    FinalPortfolio.index = FinalPortfolio.index+1
     
     #returns a final portfolio with the purchasing data for the stock being baught
     return(FinalPortfolio)
 
+# Returns a dataframe with the inputted tickers and their current prices
+def grab_tickers(Tickers):
+    
+    #Creates a new dataframe to store tickers and there price
+    Valid_Tickers =  pd.DataFrame({'Ticker': [],
+                                   'Price': []})
+            
+    number = 0;
+    
+    #Threading
+    with cf.ThreadPoolExecutor() as executor:
+        
+        #creates a thread for each Ticker to gets it's history data
+        datarow = [executor.submit(price_thread, Tickers.iloc[index,0]) for index in range(len(Tickers.index))]
+        
+        #Adds each ticker's data to the dataframe
+        for row in cf.as_completed(datarow):
+            Valid_Tickers = Valid_Tickers.append(row.result())
+            number+=1
+            print(number)
+    
+    #Formats the data
+    Valid_Tickers.reset_index(inplace=True)
+    Valid_Tickers = Valid_Tickers[['Ticker', 'Price']]
+    
+    
+    
+    #returns the dataframe with all the data
+    return (Valid_Tickers)
+
+# Takes in a Ticker and finds its most recent closing price
+def price_thread(Ticker):
+    
+    #Gets data for filtering
+    
+    today = datetime.today()
+    yesterday = today - timedelta(days=7)
+
+    stock = yf.Ticker(Ticker)
+    stock_hist = stock.history(start=yesterday, end=today, interval='1d')
+    close_today = stock_hist.iloc[-1, 3]
+    
+    return pd.DataFrame({'Ticker': [Ticker],
+                         'Price': [close_today]})
+
+# Determines the current value of the portfolio
+def calc_funds():
+    
+    # Grabs the past data from the csv
+    past_data = pd.read_csv('Portfolio_History.csv')
+    
+    # Creates a dataframe of past tickers most recent share count sorted alphabetically by ticker
+    prev_shares = past_data.iloc[1: , :]
+    prev_shares = prev_shares.set_index('Ticker')
+    prev_shares.sort_index(inplace=True) 
+    prev_shares.reset_index(inplace=True)
+    prev_shares = prev_shares.iloc[: , -1:]
+    
+    # Creates a dataframe of past tickers sorted alphabetically
+    prev_tickers = past_data.iloc[1: , 1:2]
+    prev_tickers = prev_tickers.set_index('Ticker')
+    prev_tickers.sort_index(inplace=True) 
+    prev_tickers.reset_index(inplace=True)
+    prev_tickers = prev_tickers[['Ticker']]
+    
+    # Optimises the reading of ticker price
+    prev_tickers['Shares'] = prev_shares
+    prev_tickers = prev_tickers.dropna()
+    prev_tickers = prev_tickers.reset_index()
+    prev_tickers = prev_tickers[['Ticker']]
+    
+    prev_shares = prev_shares.dropna()
+    prev_shares = prev_shares.reset_index()
+    prev_shares = prev_shares.iloc[: , -1:]
+    
+    # Grabs the closing price for today and sorts alphabetically by ticker
+    prices = grab_tickers(prev_tickers)
+    prices = prices.set_index('Ticker')
+    prices.sort_index(inplace=True) 
+    prices = prices.reset_index()
+    
+    # Merges data and calculates total value of portfolio
+    prev = prices
+    prev['Shares'] = prev_shares
+    prev['Value'] = prev.Price * prev.Shares
+    availible_funds = prev.Value.sum(axis=0)
+    
+    if availible_funds == 0:
+        return(100000)
+    else:
+        return(availible_funds)
+
+# Updates the Portfolio_History.csv and saves yesterdays data in Yesterday_Portfolio_History.csv
+def rewriting_csv(FinalPortfolio):
+    
+    # Adding total value to the top of the table
+    # Shares will be the total value in dollars of the total row
+    today_value = FinalPortfolio.Value.sum(axis=0)
+    value_row = []
+    value_row.insert(0, {'Ticker': 'Total Value', 'Price': today_value, 'Shares': today_value, 'Value': today_value, 'Weight': 100.0})
+    today_data = pd.concat([pd.DataFrame(value_row), FinalPortfolio], ignore_index=True)
+
+    # reformatting columns
+    today_data = today_data[['Ticker', 'Shares']]
+    today = datetime.today()
+    today_data.columns = ['Ticker', today]
+
+    # Grabbing past data
+    past_data = pd.read_csv('Portfolio_History.csv')
+    
+    # Saving yesterdays data incase of error
+    saving = past_data.iloc[:,1:]
+    saving.to_csv('Yesterday_Portfolio_History.csv')
+    
+    # removing extra index column
+    past_data = past_data.iloc[: , 1:]
+    full_data = past_data.merge(today_data, left_on='Ticker', right_on='Ticker', how='outer')
+
+    # Ordering the shares alphabetically
+    reorder_tickets = full_data.iloc[1:]
+    reorder_tickets = reorder_tickets.set_index('Ticker')
+    reorder_tickets.sort_index(inplace=True) 
+    reorder_tickets = reorder_tickets.reset_index()
+
+    # Adding ordered share data back to dataframe
+    full_data.iloc[1:] = reorder_tickets
+
+    # Updating csv file
+    full_data.to_csv('Portfolio_History.csv')
+    print(full_data)
+
+# Returns a dataframe of all tickers in the SP500
+def get_sp500():
+    try:
+        # Grabs the SP500 tickers from wikipedia
+        wikipedia = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+        sp500 = wikipedia[0]
+        sp500_symbols = pd.DataFrame(sp500['Symbol'].values.tolist())
+        sp500_symbols.columns = ['Tickers']
+
+        # Saves current SP500 tickers incase of future issues
+        sp500_symbols.to_csv('S&P500.csv')
+    except:
+        # Grabs yesterdays data instead
+        print('ERROR in reading current SP500 companies')
+        print('Using last successful read instead')
+        sp500_symbols = pd.read_csv('S&P500.csv')
+        sp500_symbols = sp500_symbols.iloc[:,1:]
+        sp500_symbols.columns = [['Tickers']]
+        
+    return(sp500_symbols)
+
+##################### The "main" area ##############################################################################################
+
 #Reads in the csv file 
-Tickers = pd.read_csv('S&P500.csv', header = None)
-Tickers.columns = [['Tickers']]
+Tickers = get_sp500()
+
+print("Tickers grabbed")
 
 #Sets constants for the data being collected
-data_start = '2010-01-01'
 data_end = datetime.today()
+data_start = data_end - timedelta(days=3653) #10 years
+
+print("Date range set")
 
 #Grabs market data for S&P500
 market_index = yf.Ticker('^GSPC')
@@ -321,22 +473,39 @@ market_hist = market_index.history(start=data_start, end=data_end, interval='1d'
 market_hist = pd.DataFrame(market_hist['Close'])
 daily_market_returns = market_hist.pct_change()
 
+print("Market data grabbed")
+
 #Filters the stocks and gets their data
 Tickers = filtering(Tickers)
+
+print("Tickets filtered")
 
 #Determines the riskiest stock
 riskiest = riskiest(Tickers)
 
+print("Riskiest chosen")
+
 #Chooses the other 9 stocks
 final10 = other_9(Tickers, riskiest)
 
+print("Riskiest 10 chosen")
 
 #Gets the weighting for the 10 stocks
-FinalPortfolio = weightings(final10)
+FinalPortfolio = weightings(final10, calc_funds())
+
+print("Portfolio weightings decided")
+print(FinalPortfolio)
+
+#Calculates the total weights and value to prove the porfolio is valid
+totalValue = FinalPortfolio.Value.sum(axis=0)
+totalWeight = FinalPortfolio.Weight.sum(axis=0)
+print('Total value is: $' + str(totalValue))
+print('Total weight is: ' + str(totalWeight) + '%')
 
 #Creates a dataframe for the .csv file and creates the csv
-Stocks = FinalPortfolio[['Ticker', 'Shares']]
-Stocks.to_csv('Portfolio.csv')
+rewriting_csv(FinalPortfolio)
 
-print('\n\n\n' + FinalPortfolio)
+print("File created")
+print(FinalPortfolio)
 
+####################################################################################################################################
