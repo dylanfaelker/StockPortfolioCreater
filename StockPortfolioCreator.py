@@ -342,6 +342,7 @@ def price_thread(Ticker):
 
     stock = yf.Ticker(Ticker)
     stock_hist = stock.history(start=yesterday, end=today, interval='1d')
+    print(stock_hist)
     close_today = stock_hist.iloc[-1, 3]
     
     return pd.DataFrame({'Ticker': [Ticker],
@@ -351,7 +352,7 @@ def price_thread(Ticker):
 def calc_funds():
     
     # Grabs the past data from the csv
-    past_data = pd.read_csv('Portfolio_History.csv')
+    past_data = pd.read_csv('C:\\Users\\faelk\\PersonalProjects\\PortfolioGenerator\\autorunning_script - Copy\\Portfolio_History.csv')
     
     # Creates a dataframe of past tickers most recent share count sorted alphabetically by ticker
     prev_shares = past_data.iloc[1: , :]
@@ -397,24 +398,33 @@ def calc_funds():
 # Updates the Portfolio_History.csv and saves yesterdays data in Yesterday_Portfolio_History.csv
 def rewriting_csv(FinalPortfolio):
     
+    today = datetime.today()
+    yesterday = today - timedelta(days=7)
+    sp500_stock = yf.Ticker('^GSPC')
+    sp500_hist = sp500_stock.history(start=yesterday, end=today, interval='1d')
+    sp500_today = sp500_hist.iloc[-1, 3]
+    multiplier = 26.561906231801917
+    sp500_today*=multiplier
+    
     # Adding total value to the top of the table
     # Shares will be the total value in dollars of the total row
     today_value = FinalPortfolio.Value.sum(axis=0)
     value_row = []
-    value_row.insert(0, {'Ticker': 'Total Value', 'Price': today_value, 'Shares': today_value, 'Value': today_value, 'Weight': 100.0})
+    value_row.insert(0, {'Ticker': 'SP500', 'Price': today_value, 'Shares': today_value, 'Value': today_value, 'Weight': 100.0})
+    value_row.insert(0, {'Ticker': 'Total Value', 'Price': sp500_today, 'Shares': sp500_today, 'Value': sp500_today, 'Weight': 100.0})
     today_data = pd.concat([pd.DataFrame(value_row), FinalPortfolio], ignore_index=True)
 
     # reformatting columns
     today_data = today_data[['Ticker', 'Shares']]
     today = datetime.today()
-    today_data.columns = ['Ticker', today]
+    today_data.columns = ['Ticker', today.strftime("%x")]
 
     # Grabbing past data
-    past_data = pd.read_csv('Portfolio_History.csv')
+    past_data = pd.read_csv('C:\\Users\\faelk\\PersonalProjects\\PortfolioGenerator\\autorunning_script - Copy\\Portfolio_History.csv')
     
     # Saving yesterdays data incase of error
     saving = past_data.iloc[:,1:]
-    saving.to_csv('Yesterday_Portfolio_History.csv')
+    saving.to_csv('C:\\Users\\faelk\\PersonalProjects\\PortfolioGenerator\\autorunning_script - Copy\\Yesterday_Portfolio_History.csv')
     
     # removing extra index column
     past_data = past_data.iloc[: , 1:]
@@ -430,7 +440,7 @@ def rewriting_csv(FinalPortfolio):
     full_data.iloc[1:] = reorder_tickets
 
     # Updating csv file
-    full_data.to_csv('Portfolio_History.csv')
+    full_data.to_csv('C:\\Users\\faelk\\PersonalProjects\\PortfolioGenerator\\autorunning_script - Copy\\Portfolio_History.csv')
     print(full_data)
 
 # Returns a dataframe of all tickers in the SP500
