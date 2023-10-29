@@ -24,3 +24,9 @@ This folder is independant of the rest of the repo
 ### portfolio_algos
 - This folder contains all the portfolio algorithms
 - Each algo must have a produce_portfolio(all_ticker_data, start_date, end_date, eom_date, stocks, funds, daily_market_returns) function
+
+#### risky_portfolio
+- follows the methodology from original project
+
+#### safe_portfolio
+- the reverse of the risky_portfolio algo
