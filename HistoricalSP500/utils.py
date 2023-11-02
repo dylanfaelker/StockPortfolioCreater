@@ -34,4 +34,4 @@ def populate_next_month(all_ticker_data, portfolio, start_date, end_date):
 
     value_per_stock_df['Total Value'] = value_per_stock_df.sum(axis=1)
     
-    return value_per_stock_df[['Total Value']]
+    return value_per_stock_df[['Total Value']], value_per_stock_df[stocks.to_numpy()]
